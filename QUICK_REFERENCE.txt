@@ -1,0 +1,176 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                  ║
+║                    TRACE GUIDANCE CONFIG - QUICK REFERENCE                       ║
+║                                                                                  ║
+║                              ✅ ALL FIXED & VERIFIED                             ║
+║                                                                                  ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+THE FIX (2 CRITICAL CHANGES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ADD 'weight': 1.0  ← WAS MISSING
+   
+   Before:  'name', 'params', 'agents'
+   After:   'name', 'weight', 'params', 'agents'  ✅
+
+2. USE [[config]]  ← WAS WRONG STRUCTURE
+   
+   Before:  guidance_config_list = [config]
+   After:   guidance_config_list = [[config]]  ✅
+
+
+COPY-PASTE EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# For 3 agents going to 3 different exits
+
+guidance_config = {
+    'name': 'global_target_pos',
+    'weight': 1.0,                          # ✅ REQUIRED!
+    'params': {
+        'target_pos': [
+            [10.5, 0.0],   # Agent 0
+            [10.5, 2.0],   # Agent 1
+            [8.0, 1.0],    # Agent 2
+        ],
+        'urgency': [0.8, 0.8, 0.6],         # 0=slow, 1=fast
+        'pref_speed': 1.42,                 # m/s
+        'dt': 0.1,                          # timestep
+        'min_progress_dist': 0.5,           # meters
+    },
+    'agents': [0, 1, 2]
+}
+
+guidance_config_list = [[guidance_config]]  # ✅ [[config]], not [config]
+
+# Then use with:
+stats, info = guided_rollout(
+    env=env,
+    policy=rollout_policy,
+    policy_model=policy_model,
+    guidance_config=guidance_config_list,  # Pass the [[config]]
+    horizon=100,
+)
+
+
+REQUIRED KEYS (ALL 4 MUST BE PRESENT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+    'name':     string,         ✅ Required
+    'weight':   float,          ✅ Required (was missing!)
+    'params':   dict,           ✅ Required
+    'agents':   list,           ✅ Required
+}
+
+
+GUIDANCE TYPES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+'global_target_pos'          → Reach target (recommended for waypoints)
+'global_target_pos_at_time'  → Reach target at specific timestep
+'agent_collision'             → Avoid other agents
+'map_collision'               → Stay on roads/valid areas
+'target_speed'                → Maintain specific speed
+'social_group'                → Keep agents together
+... (9 types total)
+
+All require 'weight' key!
+
+
+STRUCTURE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+guidance_config_list = [
+    [config1, config2, ...],     ← Configs for scene 0
+    [config3, ...],              ← Configs for scene 1
+    ...
+]
+
+For single scene:    [[config]]
+For 2 scenes:        [[config], [config]]
+For 2 configs/scene: [[config1, config2]]
+
+
+TESTS THAT PASS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ python test_guidance_config_only.py
+   (Config validation - no ORCA needed)
+
+✅ python example_complete_guidance_patterns.py
+   (All pattern types work)
+
+✅ python test_waypoint_guidance.py
+   (Full inference with TRACE model)
+
+
+COMMON MISTAKES (DON'T DO THESE!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ guidance_config_list = [guidance_config]
+   ✅ guidance_config_list = [[guidance_config]]
+
+❌ guidance_config = {'name': 'global_target_pos', 'params': {...}, ...}
+   ✅ guidance_config = {'name': '...', 'weight': 1.0, 'params': {...}, ...}
+
+❌ guidance_config = {'agents': None}
+   ✅ guidance_config = {'agents': [0, 1, 2]}  # or None for all
+
+❌ policy_model.set_guidance(guidance_config_list)
+   ✅ Use guided_rollout() instead which handles set_guidance() internally
+
+
+ARENA INTEGRATION TEMPLATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# 1. Load Arena world
+world = World(path=arena_world_path)
+initial_pos = get_agent_positions(world)
+num_agents = initial_pos.shape[0]
+
+# 2. Define exits/waypoints
+exits = [
+    [10.5, 0.0],   # Exit A
+    [10.5, 2.0],   # Exit B
+    [8.0, 1.0],    # Exit C
+]
+
+# 3. Create guidance
+guidance_config = {
+    'name': 'global_target_pos',
+    'weight': 1.0,
+    'params': {
+        'target_pos': exits,
+        'urgency': [0.8] * num_agents,
+        'pref_speed': 1.42,
+        'dt': 0.1,
+        'min_progress_dist': 0.5,
+    },
+    'agents': list(range(num_agents))
+}
+
+# 4. Run inference
+guidance_list = [[guidance_config]]
+stats, info = guided_rollout(..., guidance_config=guidance_list)
+
+
+REFERENCE DOCUMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 SUMMARY.md                              ← Full details of fixes
+📖 VERIFICATION_COMPLETE.md                ← Test results
+📖 example_complete_guidance_patterns.py   ← All working patterns
+📖 QUICK_START_PATTERNS.py                 ← Copy-paste patterns
+📖 00_START_HERE.txt                       ← Quick overview
+
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                  ║
+║                   ✅ READY FOR ARENA INTEGRATION                                ║
+║                                                                                  ║
+║              Configuration format is CORRECT. All tests PASSING.                 ║
+║                                                                                  ║
+╚════════════════════════════════════════════════════════════════════════════════╝

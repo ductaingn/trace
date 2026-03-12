@@ -380,7 +380,8 @@ def plot_obstacles(obstacles, ax, includes_boundary):
                                 linestyle='--' if obsi == 0 and includes_boundary else '-')
         ax.add_patch(polypatch)
 
-def viz_scene(obstacles, sim_data, save_path, vid=False, includes_boundary=False):
+def viz_scene(obstacles, sim_data, save_path, vid=False, includes_boundary=False,
+              xlim=(-BOUNDARY_RADIUS, BOUNDARY_RADIUS), ylim=(-BOUNDARY_RADIUS, BOUNDARY_RADIUS)):
     '''
     - obstacles : list of polygons. First is assumes to be the boundary.
     - sim_data: dict of saved simulated trajectories and agent properties
@@ -400,8 +401,8 @@ def viz_scene(obstacles, sim_data, save_path, vid=False, includes_boundary=False
         plt.plot(traj[:,0], traj[:,1], '-', c=plt_color(ai))
         ax.add_patch(mplCircle(traj[0], radius=sim_data['radius'][ai][0],
                      edgecolor='k', facecolor=plt_color(ai), alpha=0.5, zorder=3))
-    plt.xlim(-BOUNDARY_RADIUS-1.0, BOUNDARY_RADIUS+1.0)
-    plt.ylim(-BOUNDARY_RADIUS-1.0, BOUNDARY_RADIUS+1.0)
+    plt.xlim(xlim[0], xlim[1])
+    plt.ylim(ylim[0], ylim[1])
     ax.grid(False)
     plt.tight_layout()
     plt.savefig(save_path + '.png')

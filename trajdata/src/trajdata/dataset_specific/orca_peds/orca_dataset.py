@@ -21,7 +21,7 @@ from trajdata.utils import arr_utils
 
 ORCA_DT: Final[float] = 0.1
 
-ORCA_NUM_SCENES: Final[int] = 1000
+ORCA_NUM_SCENES: Final[int] = 1
 ALL_SCENES = ['scene_%06d' % (sidx) for sidx in range(ORCA_NUM_SCENES)]
 ORCA_MAP_DIM = (90.0, 90.0) # meters, conservative range that covers all trajectories
 

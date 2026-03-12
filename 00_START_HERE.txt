@@ -1,0 +1,234 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║          TRACE MODEL: SYNTHETIC WAYPOINT GUIDANCE - START HERE             ║
+║                                                                            ║
+║  Complete solution for using TRACE with Arena world waypoint guidance      ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+QUICK ANSWERS TO YOUR 4 QUESTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Does TRACE need ground truth trajectories for GlobalTargetPosGuidance?
+   → NO ❌ 
+   
+   The model GENERATES trajectories guided by your waypoints. You only need:
+   • Current agent state (automatically from scene)
+   • Target waypoint position (you provide)
+   • Guidance parameters (you set)
+
+2. Can you synthesize trajectories by providing sparse waypoints?
+   → YES ✅
+   
+   Example:
+   waypoint = (10.5, 0.0)  # Where agents should go
+   urgency = 0.8           # How fast (0=slow, 1=fast)
+   → Model generates smooth trajectory reaching waypoint
+
+3. Does the number of inferred frames depend on ORCA dataset?
+   → NO ❌
+   
+   Inference length is controlled by config:
+   cfg.num_simulation_steps = 100  # This controls frame count
+   Same for all datasets (ORCA, nuScenes, Arena)
+
+4. How to use with Arena world?
+   → See WAYPOINT_GUIDANCE_GUIDE.md section 4 for detailed steps
+
+
+READ THESE FILES IN ORDER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  TRACE_WAYPOINT_GUIDANCE_README.md (5 min)
+    ↳ Overview + quick links + workflow summary
+    
+2️⃣  FINAL_SUMMARY.txt (10 min)
+    ↳ Detailed answers to all 4 questions
+    ↳ Key findings and insights
+    
+3️⃣  WAYPOINT_GUIDANCE_GUIDE.md (15 min)
+    ↳ Comprehensive reference guide
+    ↳ Arena integration step-by-step
+    
+4️⃣  QUICK_START_PATTERNS.py (5 min)
+    ↳ 7 copy-paste code patterns
+    ↳ Complete integration example
+
+
+RUN THESE SCRIPTS IN ORDER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  Theory Test (< 5 seconds)
+    $ python test_waypoint_guidance.py
+    
+    Tests: Guidance config requirements analysis
+    Output: Console analysis of concepts
+
+2️⃣  Real Inference Test (10-30 seconds)
+    $ python test_waypoint_guidance_advanced.py \
+        --waypoint_x 10.5 --waypoint_y 0.0 \
+        --urgency 0.8 --num_scenes 3
+    
+    Tests: Full integration with ORCA data
+    Output: Visualizations in results/ directory
+
+3️⃣  Visualization Examples (5-10 seconds)
+    $ python visualization_examples.py
+    
+    Tests: How to visualize with draw_scene_data()
+    Output: PNG files in /tmp/
+
+
+WHAT YOU'LL LEARN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ GlobalTargetPosGuidance doesn't need GT trajectories
+✓ How to create valid guidance configs
+✓ How to validate configs before use
+✓ How to load TRACE model and run inference
+✓ How to visualize results with draw_scene_data()
+✓ How to integrate with Arena world
+✓ How to control agent behavior with sparse waypoints
+✓ How to debug and troubleshoot
+
+
+RECOMMENDED 1-HOUR WORKFLOW:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏱️  5 min:  Read TRACE_WAYPOINT_GUIDANCE_README.md
+⏱️  5 min:  Run test_waypoint_guidance.py
+⏱️  15 min: Read WAYPOINT_GUIDANCE_GUIDE.md
+⏱️  10 min: Run test_waypoint_guidance_advanced.py
+⏱️  10 min: Run visualization_examples.py
+⏱️  10 min: Copy code from QUICK_START_PATTERNS.py
+⏱️  5 min:  Adapt patterns for Arena world
+
+After 1 hour: You'll be ready to integrate with Arena!
+
+
+VALID GUIDANCE CONFIG EXAMPLE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Make 3 agents go to different waypoints with different speeds
+guidance_config = {
+    'name': 'global_target_pos',       # Guidance type
+    'weight': 1.0,                      # REQUIRED! Guidance strength (1.0 = default)
+    'params': {
+        'target_pos': [                # Where each agent should go
+            [10.5, 0.0],   # Agent 0
+            [10.5, 2.0],   # Agent 1
+            [8.0, 1.0],    # Agent 2
+        ],
+        'urgency': [0.8, 0.8, 0.6],    # Speed: 0=slow, 1=fast
+        'pref_speed': 1.42,             # Expected walking speed (m/s)
+        'dt': 0.1,                      # Timestep (always 0.1 for TRACE)
+        'min_progress_dist': 0.5,       # Min progress per step (m)
+    },
+    'agents': [0, 1, 2]  # Which agents to apply to
+}
+
+# CRITICAL: Wrap in [[config]] not [config]
+# Structure: [[config for scene 0], [config for scene 1], ...]
+guidance_config_list = [[guidance_config]]  # List of scenes, each with list of configs
+
+# Use in inference:
+results = guided_rollout(
+    env=env,
+    policy=rollout_policy,
+    policy_model=policy_model,
+    guidance_config=guidance_config_list,
+    horizon=100,
+)
+
+
+KEY FILES LOCATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Documentation:
+  00_START_HERE.txt                      ← You are here
+  TRACE_WAYPOINT_GUIDANCE_README.md      ← Start reading next
+  FINAL_SUMMARY.txt
+  WAYPOINT_GUIDANCE_GUIDE.md
+  QUICK_START_PATTERNS.py
+  INDEX_OF_FILES.txt
+
+Test Scripts:
+  test_waypoint_guidance.py              ← Run first
+  test_waypoint_guidance_advanced.py     ← Run second
+  visualization_examples.py              ← Run third
+
+Source Code (Reference):
+  tbsim/utils/guidance_loss.py           ← Guidance implementations
+  tbsim/utils/scene_edit_utils.py        ← Rollout logic
+  scripts/scene_editor.py                ← Full pipeline example
+  tbsim/utils/viz_utils.py               ← Visualization functions
+
+
+NEXT ACTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👉 Open: TRACE_WAYPOINT_GUIDANCE_README.md
+
+This file has:
+• Overview of everything
+• Quick links to resources
+• Complete workflow
+• FAQ and troubleshooting
+
+
+COMMON QUESTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Where do I start?
+A: Read TRACE_WAYPOINT_GUIDANCE_README.md, then FINAL_SUMMARY.txt
+
+Q: How long will this take?
+A: ~1 hour from reading to ready to integrate
+
+Q: Do I need to understand diffusion models?
+A: No, the patterns are provided. Just use them!
+
+Q: Can I run on CPU?
+A: Yes, but it will be slow. GPU recommended.
+
+Q: What if something doesn't work?
+A: Check WAYPOINT_GUIDANCE_GUIDE.md troubleshooting section
+
+Q: Can I use multiple waypoints?
+A: Yes, see QUICK_START_PATTERNS.py Pattern 7
+
+Q: Do I need to modify TRACE source code?
+A: No, it already supports this! Just create configs.
+
+
+WHY THIS APPROACH WORKS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. TRACE's GlobalTargetPosGuidance is designed for this exact use case
+2. It uses classifier-free guidance to steer diffusion samples
+3. Doesn't require GT trajectories, only target position
+4. Works with any scene, not just ORCA
+5. Inference length is independent of dataset
+6. Already battle-tested in the original paper
+
+
+YOU'RE READY! 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Everything you need is in this directory:
+• Clear explanations ✓
+• Working code examples ✓
+• Test scripts ✓
+• Copy-paste patterns ✓
+• Troubleshooting guide ✓
+
+Now go integrate TRACE with your Arena world!
+
+Good luck! 🎉
+
+═══════════════════════════════════════════════════════════════════════════════
+Created: February 26, 2026
+For: TRACE Model + Arena World Integration
+Directory: /home/linh/ductai_nguyen_ws/trace/
+═══════════════════════════════════════════════════════════════════════════════

@@ -9,3 +9,8 @@ __pycache__/
 .vscode/*
 
 *.egg-info
+.venv
+datasets/
+datagen_out/
+orca_arena_results/maps/scene_000000/viz_sim/
+scene_edit_eval/viz/scene_000000_orca_maps_0000/

@@ -1,0 +1,69 @@
+{
+    "name": "orca_map_open_loop_target_pos",
+    "env": "trajdata",
+    "dataset_path": null,
+    "eval_class": "Diffuser",
+    "seed": 0,
+    "num_scenes_per_batch": 1,
+    "num_scenes_to_evaluate": 1,
+    "num_episode_repeats": 1,
+    "start_frame_index_each_episode": null,
+    "seed_each_episode": null,
+    "ego_only": false,
+    "agent_eval_class": null,
+    "ckpt_root_dir": "checkpoints/",
+    "experience_hdf5_path": null,
+    "results_dir": "orca_arena_results/",
+    "ckpt": {
+        "policy": {
+            "ngc_job_id": null,
+            "ckpt_dir": null,
+            "ckpt_key": null
+        }
+    },
+    "policy": {
+        "num_action_samples": 20,
+        "class_free_guide_w": 0.0,
+        "guide_as_filter_only": false,
+        "guide_with_gt": false,
+        "guide_clean": true
+    },
+    "metrics": {
+        "compute_analytical_metrics": true
+    },
+    "trajdata": {
+        "trajdata_cache_location": "~/.unified_data_cache",
+        "trajdata_rebuild_cache": false,
+        "trajdata_source_test": [
+            "orca_maps-test"
+        ],
+        "trajdata_data_dirs": {
+            "orca_maps": "/home/linh/ductai_nguyen_ws/trace/orca_arena_results",
+            "orca_no_maps": "/home/linh/ductai_nguyen_ws/trace/orca_arena_results"
+        },
+        "num_scenes_to_evaluate": 1,
+        "eval_scenes": [
+            0
+        ],
+        "n_step_action": 50,
+        "num_simulation_steps": 50,
+        "skip_first_n": 0,
+        "num_sim_per_scene": 1
+    },
+    "edits": {
+        "editing_source": [
+            "heuristic"
+        ],
+        "guidance_config": [],
+        "constraint_config": [],
+        "heuristic_config": [
+            {
+                "name": "target_pos",
+                "weight": 30000.0,
+                "params": {
+                    "target_time": 40
+                }
+            }
+        ]
+    }
+}
